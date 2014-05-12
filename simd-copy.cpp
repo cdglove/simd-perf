@@ -49,17 +49,17 @@ template<typename T>
 T* align(T* p, std::size_t aligned_to)
 {
     std::size_t address = reinterpret_cast<std::size_t>(p);
-    while(address % aligned_to)
+    while(address % 256 != aligned_to)
         ++address;
     return reinterpret_cast<T*>(address);
 }
 
 // ----------------------------------------------------------------------------
 //
-std::size_t kDefaultNumFloats = 64 * 1024;
-std::size_t kDefaultNumIterations = 10000;
+std::size_t kDefaultNumFloats = 16 * 1024;
+std::size_t kDefaultTotalFloats = 65636 * kDefaultNumFloats;
 std::size_t gNumFloats = kDefaultNumFloats;
-std::size_t gNumIterations = kDefaultNumIterations;
+std::size_t gTotalFloats = kDefaultTotalFloats;
 float gCheckValue = 1.f;
 bool gHasAvx = true;
 bool gHtmlOut = true;
@@ -95,7 +95,7 @@ void AlignedSseCopy(float* d, float const* s)
 {
     for(int i = 0; i < gNumFloats; i += 4)
     {
-        __m128 v = _mm_loadu_ps(&s[i]);
+        __m128 v = _mm_load_ps(&s[i]);
         _mm_store_ps(&d[i], v);
     }
 }
@@ -149,7 +149,7 @@ void Run(char const* name, std::size_t alignment, float* d, float const* s)
     std::fill(d, d + gNumFloats, 0.f);
 
     Timer t;
-    for(std::size_t i = 0; i < gNumIterations; ++i)
+    for(std::size_t i = 0; i < gTotalFloats; i += gNumFloats)
     {
         f(d, s);
     }
@@ -179,8 +179,8 @@ void print_usage()
 {
     std::cerr << "Usage:\n" 
               << "copy [options]\n"
-              << "num-floats=<number of float to copy>      default (" << kDefaultNumFloats << ")\n"
-              << "num-iterations=<number of iterations>     default (" << kDefaultNumIterations << ")\n"
+              << "num-floats=<number of float in memory>    default (" << kDefaultNumFloats << ")\n"
+              << "total-floats=<number of floats total>     default (" << kDefaultTotalFloats << ")\n"
               << "check-value=<any value to check against>  default (" << gCheckValue << ")\n"
               << "enable-avx=<true/false>                   default (" << std::boolalpha << gHasAvx << ")\n"
               << "report-html=<true/false>                  default (" << std::boolalpha << gHtmlOut << ")\n"
@@ -217,9 +217,16 @@ void get_option(char const* name, int argc, char const* const* argv, T& opt)
 int main(int argc, char** argv)
 {
     get_option("num-floats", argc, argv, gNumFloats);
-    get_option("num-iterations", argc, argv, gNumIterations);
+    get_option("total-floats", argc, argv, gTotalFloats);
     get_option("check-value", argc, argv, gCheckValue);
     get_option("enable-avx", argc, argv, gHasAvx);
+
+    if(gTotalFloats < gNumFloats)
+    {
+        std::cerr << "total-floats must be greater than num-floats" << std::endl;
+        print_usage();
+        return 0;
+    }
 
     if(gHtmlOut)
     {
