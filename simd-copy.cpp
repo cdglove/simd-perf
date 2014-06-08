@@ -19,35 +19,11 @@
 #include <immintrin.h>
 #include <cassert>
 #include "cgutil/program_options.h"
+#include "cgutil/timer.h"
 
 #ifndef SUPPORT_AVX
 #  define SUPPORT_AVX 1
 #endif
-// ----------------------------------------------------------------------------
-//
-class Timer
-{
-public:
-	Timer()
-	{
-		Reset();
-	}
-
-	float Elapsed()
-	{
-		return std::chrono::duration_cast<std::chrono::microseconds>
-			(std::chrono::system_clock::now() - mStartTime).count() / (1000.0 * 1000.0);
-	}
-
-	void Reset()
-	{
-		mStartTime = std::chrono::system_clock::now();
-	}
-
-private:
-
-	std::chrono::time_point<std::chrono::system_clock> mStartTime;
-};
 
 template<typename T>
 T* align(T* p, std::size_t aligned_to)
@@ -154,7 +130,7 @@ void Run(char const* name, std::size_t alignment, float* d, float const* s)
 	s = align(s, alignment);
 	std::fill(d, d + gNumFloats, 0.f);
 
-	Timer t;
+	cgutil::timer t;
 	for(std::size_t i = 0; i < gTotalFloats; i += gNumFloats)
 	{
 		f(d, s);
