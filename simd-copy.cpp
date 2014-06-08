@@ -135,7 +135,7 @@ void Run(char const* name, std::size_t alignment, float* d, float const* s)
 	{
 		f(d, s);
 	}
-	float time = t.Elapsed();
+	float time = t.elapsed();
 
 	for(std::size_t i = 0; i < gNumFloats; ++i)
 	{
